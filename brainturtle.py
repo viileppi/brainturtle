@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-  
 # 0 0000 | halt
 # 1 0001 > move right one cell
 # 2 0010 < move left one cell
@@ -10,7 +11,7 @@
 # 9 1001 TODO exec position from up to down
 # A 1010 TODO exec position from down to up
 # B 1011 - substract 1 hex
-# C 1100 TODO break 
+# C 1100 ¤ invert directions 
 # D 1101 L change direction 90°
 # E 1110 TODO exec position from right to left
 # F 1111 * exec position from left to right
@@ -26,7 +27,7 @@ class Data:
             for x in range(self.size[1] + 1):
                 self.tape[y].append("0")
         self.prgp = 0
-        self.program = "7777788 814 7 8241b4 111 7777 d4"
+        self.program = "777788 8154 7 826415 b 4157 8254 7777 816426 bd 4"
         self.program = self.program.replace(" ", "")
         self.loopcount = 0
         self.color_reset='\033[0m'
@@ -83,7 +84,8 @@ class Data:
         return 1
     def add1(self):
         l = list(self.tape[self.pos[0]])
-        l[self.pos[1]] = str(hex(int(self.tape[self.pos[0]][self.pos[1]], 16) + 1))[2:]
+        t = (int(self.tape[self.pos[0]][self.pos[1]], 16) + 1) % 16
+        l[self.pos[1]] = str(hex(t))[2:]
         self.tape[self.pos[0]] = ''.join(l)
         self.draw()
         return 1
@@ -114,12 +116,25 @@ class Data:
 #                    pass
     def sub1(self):
         l = list(self.tape[self.pos[0]])
-        l[self.pos[1]] = str(hex(int(self.tape[self.pos[0]][self.pos[1]], 16) - 1))[2:]
+        t = (int(self.tape[self.pos[0]][self.pos[1]], 16) - 1) % 16
+        l[self.pos[1]] = str(hex(t))[2:]
         self.tape[self.pos[0]] = ''.join(l)
         self.draw()
         return 1
-    def brea(self):
-        pass
+    def invd(self):
+        l = list(self.program)
+        for i in range(len(self.program)):
+            c = l[i]
+            if c == "1":
+                l[i] = "2"
+            elif c == "2":
+                l[i] = "1"
+            elif c == "5":
+                l[i] = "6"
+            elif c == "6":
+                l[i] = "5"
+        self.program = ''.join(l)
+        self.draw()
         return 1
     def hex2prg(self):
         l = ""
@@ -174,7 +189,7 @@ class Data:
     def exel(self):
         pass
 
-    commands = [halt, mvr1, mvl1, invb, lend, mvu1, mvd1, add1, loop, exed, exeu, sub1, brea, chng, exel, exep]
+    commands = [halt, mvr1, mvl1, invb, lend, mvu1, mvd1, add1, loop, exed, exeu, sub1, invd, chng, exel, exep]
     def run(self):
         self.i = 0
         while self.prgp <= len(self.program) - 1:
