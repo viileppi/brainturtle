@@ -11,21 +11,23 @@
 # A 1010 TODO exec position from down to up
 # B 1011 - substract 1 hex
 # C 1100 TODO break 
-# D 1101 TODO copypaste
+# D 1101 L change direction 90°
 # E 1110 TODO exec position from right to left
 # F 1111 * exec position from left to right
 import time
+print("\033[2J", "\033[0;0H")
 class Data:
     def __init__(self):
-        self.pos = [1,1]
+        self.size = [16,32]
+        self.pos = [15,16]
         self.tape = []
-        for y in range(3):
+        for y in range(self.size[0] + 1):
             self.tape.append([])
-            for x in range(32):
+            for x in range(self.size[1] + 1):
                 self.tape[y].append("0")
         self.prgp = 0
-        self.program = "17881478241b14"
-#                       >+[[>]+[<]>->]   
+        self.program = "7777788 814 7 8241b4 111 7777 d4"
+        self.program = self.program.replace(" ", "")
         self.loopcount = 0
         self.color_reset='\033[0m'
         self.color_red='\033[31m'
@@ -34,10 +36,11 @@ class Data:
         self.color_cyan='\033[36m'
         self.color_bold='\033[01m'
         self.nested_prgp = []
-        self.nested = 0
+        self.nested = []
+        self.i = 0
                                                 
     def draw(self):
-        print("\033[2J", "\033[0;0H")
+        print("\033[0;0H")
         o = []
         y = 0
         x = 0
@@ -46,12 +49,12 @@ class Data:
                 if c != "0":
                     o.append(self.color_cyan + c + self.color_reset)
                 if c == "0":
-                    o.append(self.color_green + "0" + self.color_reset)
-                if x == self.pos[1] and y == self.pos[0] - 1:
-                    try:
-                        o[x] = self.color_yellow + c + self.color_reset 
-                    except IndexError:
-                        pass
+                    o.append(self.color_green + " " + self.color_reset)
+#                if x == self.pos[1] and y == self.pos[0]:
+#                    try:
+#                        o[x] = self.color_yellow + c + self.color_reset 
+#                    except IndexError:
+#                        pass
                 x += 1
             p = ""
             for c in o:
@@ -60,18 +63,17 @@ class Data:
             o = []
             y += 1
         print(self.program)
-        print(" " * self.prgp + "^")
-        time.sleep(0.5)
+        print(" " * self.prgp + "^" + " " * 32)
+        time.sleep(0.1)
+        #i = input()
     def halt(self):
         pass
         return 1
     def mvr1(self):
-        self.pos[1] += 1
-        self.draw()
+        self.pos[1] = (self.pos[1] + 1) % (self.size[1])
         return 1
     def mvl1(self):
-        self.pos[1] -= 1
-        self.draw()
+        self.pos[1] = (self.pos[1] - 1) % (self.size[1])
         return 1
     def invb(self):
         l = list(self.tape)
@@ -86,36 +88,20 @@ class Data:
         self.draw()
         return 1
     def lend(self):
-        if self.tape[self.pos[0]][self.pos[1]] != "0" and self.tape[self.pos[0]][self.pos[1]] != " ":
-            self.draw()
-            return -1 - self.nested_prgp.pop()
+        if self.tape[self.pos[0]][self.pos[1]] != "0":
+            try:
+                self.prgp = self.nested.pop()  
+                return 1
+            except IndexError:
+                return 1
         else:
-            self.draw()
+            foo = self.nested.pop()
             return 1
     def loop(self):
-        self.start = self.prgp
-        subprg = []
-        self.nested_prgp.append(self.start)
-        if self.tape[self.pos[0]][self.pos[1]] != "0" and self.tape[self.pos[0]][self.pos[1]] != " " and self.program[self.prgp] != "4":
-            for c in range(self.prgp, len(self.program)):
-                if self.program[c] == "4":
-                    subprg.append(self.program[self.prgp + 1:c - 1])
-                if self.program[c] == "8":
-                    self.nested += 1
-                    for d in range(c, len(self.program)):
-                        if self.program[d] == "8":
-                            self.nested += 1
-                        if self.program[d] == "4" and self.nested > 0:
-                            self.nested -= 1
-                        if self.program[d] == "4" and self.nested == 0:
-                            subprg.append(self.program[self.prgp + 1:d - 1])
-                        else:
-                            self.draw()
-                            return 1
-                self.nested_prgp.append(self.run(subprg.pop()))
-                self.draw()
-                print("nested:", self.nested)
-        self.nested = 0
+        if self.tape[self.pos[0]][self.pos[1]] != "0":
+            self.nested.append(self.prgp - 1)
+        else:
+            pass
         return 1
 
 
@@ -161,28 +147,39 @@ class Data:
     #        draw()
         return i
     def mvu1(self):
-        self.pos[0] -= 1
-        self.draw()
+        self.pos[0] = (self.pos[0] - 1) % self.size[0] 
         return 1
     def mvd1(self):
-        self.pos[0] += 1
-        self.draw()
+        self.pos[0] = (self.pos[0] + 1) % self.size[0] 
         return 1
     def exed(self):
         pass
     def exeu(self):
         pass
-    def copa(self):
-        pass
+    def chng(self):
+        l = list(self.program)
+        for i in range(len(self.program)):
+            c = l[i]
+            if c == "1":
+                l[i] = "5"
+            if c == "2":
+                l[i] = "6"
+            if c == "5":
+                l[i] = "1"
+            if c == "6":
+                l[i] = "2"
+        self.program = ''.join(l)
+        self.draw()
+        return 1
     def exel(self):
         pass
 
-    commands = [halt, mvr1, mvl1, invb, lend, mvu1, mvd1, add1, loop, exed, exeu, sub1, brea, copa, exel, exep]
-    def run(self, prg):
-        i = 0
-        while self.prgp <= len(prg) - 1:
-            self.prgp += self.commands[int(prg[self.prgp], 16)](self)
-            i += 1
+    commands = [halt, mvr1, mvl1, invb, lend, mvu1, mvd1, add1, loop, exed, exeu, sub1, brea, chng, exel, exep]
+    def run(self):
+        self.i = 0
+        while self.prgp <= len(self.program) - 1:
+            self.commands[int(self.program[self.prgp], 16)](self)
+            self.prgp += 1
         return self.prgp
     def tape2hex(self):
         newt = ""
@@ -192,5 +189,6 @@ class Data:
 
 p = Data()
 p.draw()
-p.run(p.program)
+p.run()
 p.draw()
+
