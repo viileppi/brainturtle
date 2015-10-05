@@ -8,27 +8,34 @@
 # 6 0110 v move down
 # 7 0111 + add 1 hex
 # 8 1000 [ loop start
-# 9 1001 TODO exec position from up to down
-# A 1010 TODO exec position from down to up
+# 9 1001 { inverse loop start (loop over empty cells)
+# A 1010 } inverse loop stop (loop over empy cells)
 # B 1011 - substract 1 hex
 # C 1100 ¤ invert directions 
 # D 1101 L change direction 90°
 # E 1110 TODO exec position from right to left
-# F 1111 * exec position from left to right
+# F 1111 TODO * exec position from left to right 
 import time
+import sys
 print("\033[2J", "\033[0;0H")
 class Data:
     def __init__(self):
+        self.debug = False # show loop action
         self.size = [16,32]
-        self.pos = [15,16]
+        self.pos = [8,8]
         self.tape = []
         for y in range(self.size[0] + 1):
             self.tape.append([])
             for x in range(self.size[1] + 1):
                 self.tape[y].append("0")
         self.prgp = 0
-        self.program = "777788 8154 7 826415 b 4157 8254 7777 816426 bd 4"
-        self.program = self.program.replace(" ", "")
+        self.program = "b8 814 7 8241 b 4 814 55267777777 8 864 7 8546 b 4 "
+        self.program = "".join(i for i in self.program if i in "0123456789abcdef")
+        try:
+            with open(sys.argv[1], "r") as self.f:
+                self.program = "".join(i for i in self.f.read() if i in "0123456789abcdef")
+        except IndexError:
+            pass
         self.loopcount = 0
         self.color_reset='\033[0m'
         self.color_red='\033[31m'
@@ -93,17 +100,25 @@ class Data:
         if self.tape[self.pos[0]][self.pos[1]] != "0":
             try:
                 self.prgp = self.nested.pop()  
+                if self.debug == True:
+                    self.draw()
                 return 1
             except IndexError:
+                if self.debug == True:
+                    self.draw()
                 return 1
         else:
             foo = self.nested.pop()
+            if self.debug == True:
+                self.draw()
             return 1
     def loop(self):
         if self.tape[self.pos[0]][self.pos[1]] != "0":
             self.nested.append(self.prgp - 1)
         else:
             pass
+        if self.debug == True:
+            self.draw()
         return 1
 
 
@@ -167,10 +182,22 @@ class Data:
     def mvd1(self):
         self.pos[0] = (self.pos[0] + 1) % self.size[0] 
         return 1
-    def exed(self):
-        pass
-    def exeu(self):
-        pass
+    def lsem(self):
+        if self.tape[self.pos[0]][self.pos[1]] == "0":
+            try:
+                self.prgp = self.nested.pop()  
+                return 1
+            except IndexError:
+                return 1
+        else:
+            foo = self.nested.pop()
+            return 1
+    def loem(self):
+        if self.tape[self.pos[0]][self.pos[1]] == "0":
+            self.nested.append(self.prgp - 1)
+        else:
+            pass
+        return 1
     def chng(self):
         l = list(self.program)
         for i in range(len(self.program)):
@@ -189,9 +216,9 @@ class Data:
     def exel(self):
         pass
 
-    commands = [halt, mvr1, mvl1, invb, lend, mvu1, mvd1, add1, loop, exed, exeu, sub1, invd, chng, exel, exep]
+    commands = [halt, mvr1, mvl1, invb, lend, mvu1, mvd1, add1, loop, loem, lsem, sub1, invd, chng, exel, exep]
     def run(self):
-        self.i = 0
+        self.i = []
         while self.prgp <= len(self.program) - 1:
             self.commands[int(self.program[self.prgp], 16)](self)
             self.prgp += 1
